@@ -61,6 +61,11 @@ if [ ! -d "$REPO_DIR/.config" ]; then
     exit 1
 fi
 
+if [ ! -d "$REPO_DIR/.config/hypr" ]; then
+    echo "ERROR: Could not find the Hyprland config directory inside your repository at '$REPO_DIR/.config/hypr'."
+    exit 1
+fi
+
 # --- Pre-flight confirmation ---
 echo "This script will install custom dot-files for Hyprland and the Chaotic AUR. Use only with fresh install of Hyprland (Vanilla Arch Linux only). Use at your own risk."
 while true; do
@@ -80,8 +85,52 @@ while true; do
     esac
 done
 
+INSTALL_NVIDIA_OPTIONAL=0
+while true; do
+    echo ""
+    read -r -p "Are you using an Nvidia GPU? (y/n): " nvidia_choice
+    case "$nvidia_choice" in
+        y|Y|yes|YES)
+            INSTALL_NVIDIA_OPTIONAL=1
+            echo "Nvidia-specific Hyprland options will be enabled."
+            break
+            ;;
+        n|N|no|NO)
+            INSTALL_NVIDIA_OPTIONAL=0
+            echo "Skipping Nvidia-specific Hyprland options."
+            break
+            ;;
+        *)
+            echo "Please answer 'y' or 'n'."
+            ;;
+    esac
+done
+
+DEFAULT_INSTALL=0
+while true; do
+    echo ""
+    read -r -p "Would you like to use the default installation options? (y/n): " default_install_choice
+    case "$default_install_choice" in
+        y|Y|yes|YES)
+            DEFAULT_INSTALL=1
+            echo "Using default installation options."
+            break
+            ;;
+        n|N|no|NO)
+            echo "Continuing with custom installation options."
+            break
+            ;;
+        *)
+            echo "Please answer 'y' or 'n'."
+            ;;
+    esac
+done
+
 # --- Printer support selection ---
 INSTALL_PRINTER_SUPPORT=0
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    echo "Default selection: skipping printer support."
+else
 while true; do
     echo ""
     read -r -p "Do you want printer support? (y/n): " printer_choice
@@ -101,9 +150,17 @@ while true; do
             ;;
     esac
 done
+fi
 
 # --- Gaming package selection ---
 GAMING_SELECTED_PACKAGES=()
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    GAMING_SELECTED_PACKAGES=(
+        steam mangohud protonplus wine winetricks protontricks lutris
+        heroic-games-launcher-bin prismlauncher
+    )
+    echo "Default gaming packages selected: ${GAMING_SELECTED_PACKAGES[*]}"
+else
 while true; do
     echo ""
     echo "Gaming Packages (select one or more):"
@@ -164,9 +221,14 @@ while true; do
 
     echo "Please try again with valid choices."
 done
+fi
 
 # --- Bluetooth package selection ---
 INSTALL_BLUETOOTH_PACKAGES=0
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    INSTALL_BLUETOOTH_PACKAGES=1
+    echo "Default selection: installing Bluetooth packages."
+else
 while true; do
     echo ""
     read -r -p "Do you want to install Bluetooth packages and enable the Bluetooth service? (y/n): " bluetooth_choice
@@ -186,9 +248,13 @@ while true; do
             ;;
     esac
 done
+fi
 
 # --- Audio mode selection ---
 AUDIO_MODE="easyeffects"
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    echo "Default selection: using EasyEffects setup."
+else
 while true; do
     echo ""
     echo "Audio setup option:"
@@ -217,10 +283,15 @@ while true; do
             ;;
     esac
 done
+fi
 
 # --- Audio/Video player selection ---
 AUDIO_VIDEO_PACKAGES=()
 INSTALL_VLC_PLUGINS_ALL=0
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    AUDIO_VIDEO_PACKAGES=(mpv)
+    echo "Default audio/video player selected: mpv"
+else
 while true; do
     echo ""
     echo "Audio/Video Players (select one or more):"
@@ -300,10 +371,12 @@ while true; do
     echo "Please try again with valid choices."
     AUDIO_VIDEO_PACKAGES=()
 done
+fi
 
 # Define the list of packages to install using pacman
 PACKAGES=(
     # Core Components
+    greetd                    # Login manager daemon for Noctalia Greeter
     polkit-gnome              # PolicyKit authentication agent
     gnome-keyring             # Credential storage  
     hyprlock                  # Locks screen, obviously. 
@@ -383,7 +456,13 @@ PACKAGES=(
     gst-plugins-good          # Gstreamer Plugins 
     gst-plugins-ugly          # Gstreamer Plugins
     gst-libav                 # Gstreamer Plugins
-    qt6-websockets            # Websocket 
+    qt6-websockets            # Websocket
+    os-prober                 # Os prober for Grub
+    stb                       # Build Package for Noctalia V5
+    imagemagick               # Image display
+    noctalia                  # Noctalia
+    papirus-icon-theme        # Papirus Icons
+    papirus-folders           # Papirus Folders
 )
 
 # Audio stack is selected at runtime.
@@ -721,6 +800,13 @@ prompt_optional_packages() {
 
     echo -e "\n--- Optional Packages Installation ---"
 
+    if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+        SELECTED_OPTIONAL_PACKAGES=("${OPTIONALPKG[@]}")
+        append_unique_package SELECTED_OPTIONAL_PACKAGES luajit
+        echo "Default selection: installing all optional packages."
+        return 0
+    fi
+
     while true; do
         echo "Choose one or more optional packages:"
         menu_index=1
@@ -820,17 +906,27 @@ deploy_configs() {
     # Back up any existing configs that would be overwritten
     BACKUP_TIMESTAMP=$(date +%s)
     echo "Backing up existing configuration files..."
+
     for item in "$CONFIG_SOURCE_ROOT"/*; do
         name=$(basename "$item")
         target="$CONFIG_DIR/$name"
+        if [ "$name" = "hypr" ]; then
+            continue
+        fi
+
         if [ -e "$target" ] || [ -L "$target" ]; then
             echo "  -> Backing up: $name to $name.bak.$BACKUP_TIMESTAMP"
             mv "$target" "$CONFIG_DIR/$name.bak.$BACKUP_TIMESTAMP"
         fi
     done
-    
-    # Copy all contents from repo/.config to ~/.config
-    echo "Copying all configuration files from $CONFIG_SOURCE_ROOT to $CONFIG_DIR..."
+
+    if [ -e "$CONFIG_DIR/hypr" ] || [ -L "$CONFIG_DIR/hypr" ]; then
+        echo "  -> Backing up: hypr to hypr.bak.$BACKUP_TIMESTAMP"
+        mv "$CONFIG_DIR/hypr" "$CONFIG_DIR/hypr.bak.$BACKUP_TIMESTAMP"
+    fi
+
+    # Copy all configuration files from repo/.config to ~/.config
+    echo "Copying configuration files from $CONFIG_SOURCE_ROOT to $CONFIG_DIR..."
     cp -rf "$CONFIG_SOURCE_ROOT"/* "$CONFIG_DIR"/
     
     if [ $? -eq 0 ]; then
@@ -873,6 +969,24 @@ PY
 }
 
 
+
+update_hypr_startup_config() {
+    local startup_file="$ACTUAL_USER_HOME/.config/hypr/startup.lua"
+
+    if [ ! -f "$startup_file" ]; then
+        echo "Warning: Hyprland startup file '$startup_file' not found."
+        return 0
+    fi
+
+    if [ "$INSTALL_NVIDIA_OPTIONAL" -eq 1 ]; then
+        if grep -qF 'local enable_nvidia_optional = false' "$startup_file"; then
+            echo "Enabling Nvidia-specific Hyprland options in $startup_file..."
+            sed -i 's|^local enable_nvidia_optional = false$|local enable_nvidia_optional = true|' "$startup_file"
+        else
+            echo "Warning: Expected Nvidia toggle line not found in '$startup_file'."
+        fi
+    fi
+}
 
 # Set executable permissions for scripts
 set_permissions() {
@@ -990,7 +1104,14 @@ install_browser() {
 setup_ddcutil() {
     echo -e "\n--- Optional: ddcutil Setup ---"
     echo "ddcutil allows you to control monitor brightness via DDC/CI protocol."
-    read -r -p "Do you want to install and configure ddcutil? (y/N): " ddcutil_response
+    local ddcutil_response
+
+    if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+        ddcutil_response="y"
+        echo "Default selection: configuring ddcutil."
+    else
+        read -r -p "Do you want to install and configure ddcutil? (y/N): " ddcutil_response
+    fi
     
     if [[ "$ddcutil_response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         echo "Setting up ddcutil..."
@@ -1179,13 +1300,63 @@ apply_dolby_pipewire_profile() {
     fi
 }
 
+setup_noctalia_greeter() {
+    echo -e "\n--- Noctalia Greeter Setup ---"
+
+    local greetd_config_file="/etc/greetd/config.toml"
+    local greeter_user="greeter"
+    local session_bin="/usr/bin/noctalia-greeter-session"
+
+    if command -v noctalia-greeter-session >/dev/null 2>&1; then
+        session_bin=$(command -v noctalia-greeter-session)
+    fi
+
+    if ! id -u "$greeter_user" >/dev/null 2>&1; then
+        echo "Creating greeter user '$greeter_user'..."
+        useradd -r -s /usr/bin/nologin -d /var/lib/noctalia-greeter "$greeter_user"
+    fi
+
+    echo "Preparing greeter state directory..."
+    mkdir -p /var/lib/noctalia-greeter
+    chown -R "$greeter_user:$greeter_user" /var/lib/noctalia-greeter
+
+    if [ -f "$greetd_config_file" ]; then
+        cp -a "$greetd_config_file" "$greetd_config_file.bak.$(date +%s)"
+    fi
+
+    echo "Writing greetd configuration to $greetd_config_file..."
+    mkdir -p /etc/greetd
+    cat > "$greetd_config_file" <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "$session_bin"
+user = "$greeter_user"
+EOF
+
+    if [ -x /usr/share/noctalia-greeter/setup_greetd_pam.sh ]; then
+        echo "Configuring greetd PAM integration for Noctalia Greeter..."
+        if ! bash /usr/share/noctalia-greeter/setup_greetd_pam.sh; then
+            echo "Warning: greetd PAM setup failed."
+        fi
+    else
+        echo "Warning: /usr/share/noctalia-greeter/setup_greetd_pam.sh was not found."
+    fi
+}
+
 # --- Main Installation Flow ---
 
 echo "Starting Hyprland Dotfiles Installation..."
 
 # Collect install choices before repository setup and package installation.
 prompt_optional_packages
-prompt_browser_installation
+if [ "$DEFAULT_INSTALL" -eq 1 ]; then
+    BROWSER_CHOICE=2
+    echo "Default browser selected: Brave."
+else
+    prompt_browser_installation
+fi
 
 # 0. Setup Chaotic-AUR Repository
 if ! setup_chaotic_aur; then
@@ -1237,7 +1408,7 @@ echo "Proceeding with post-install configuration..."
 echo "--------------------------------------------------------"
 
 # Refresh and upgrade system packages before AUR installs
-echo "Updating system packages before installing noctalia-shell and noctalia-qs..."
+echo "Updating system packages before installing noctalia-git..."
 sudo pacman -Syu --noconfirm
 
 if [ $? -ne 0 ]; then
@@ -1245,13 +1416,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Install noctalia-shell and noctaliia-qs via yay
-echo "Installing noctalia-shell and noctaliia-qs via yay..."
-sudo -u "$ACTUAL_USER" yay -S --noconfirm noctalia-shell noctalia-qs
+# Install noctalia-git via yay
+#echo "Installing noctalia-git via yay..."
+#sudo -u "$ACTUAL_USER" yay -S --noconfirm noctalia-git
 
-if [ $? -ne 0 ]; then
-    echo "Warning: Failed to install noctalia-shell and/or noctaliia-qs."
-fi
+#if [ $? -ne 0 ]; then
+#    echo "Warning: Failed to install noctalia-git."
+#fi
 
 # Browser installation
 install_browser
@@ -1268,6 +1439,9 @@ deploy_configs
 # Copy backup config files if available
 copy_backup_configs
 
+# Update Hyprland startup command for Nvidia
+update_hypr_startup_config
+
 # Create Thunar bookmarks
 create_thunar_bookmarks
 
@@ -1276,6 +1450,23 @@ set_permissions
 
 # Apply optional Dolby PipeWire profile
 apply_dolby_pipewire_profile
+
+# Install Noctalia Greeter via yay
+echo "Installing noctalia-greeter-git via yay..."
+sudo -u "$ACTUAL_USER" yay -S --noconfirm noctalia-greeter-git
+
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to install noctalia-greeter-git. Aborting installation."
+    exit 1
+fi
+
+setup_noctalia_greeter
+
+echo "Disabling SDDM display manager..."
+sudo systemctl disable sddm
+
+echo "Enabling greetd display manager..."
+sudo systemctl enable greetd
 
 # Reboot confirmation
 echo ""

@@ -1,39 +1,135 @@
 <p align="center">
-  <img src="https://img.shields.io/github/last-commit/Echilonvibin/minimaLinux" alt="Last Commit">
-  <img src="https://img.shields.io/github/commit-activity/w/Echilonvibin/minimaLinux" alt="Commit Activity">
+  <img src="https://img.shields.io/gitlab/contributors/minimalinux/minimaDots" alt="Contributors">
+  <img src="https://img.shields.io/gitlab/last-commit/minimalinux/minimaDots" alt="Last Commit">
   <img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License">
 </p>
 
+<div align="center">
 <details>
-  <summary align="center"><b>📸 Click to view Theme Screenshots</b></summary>
+  <summary><b>▶️ Click to view Video Trailer</b></summary>
+  <br>
+  <a href="https://www.youtube.com/watch?v=HJhm0aT3lNw">
+    <img src="https://img.youtube.com/vi/HJhm0aT3lNw/hqdefault.jpg" alt="Watch Trailer" height="250">
+  </a>
+</details>
+</div>
+
+
+
+### Fresh Arch Install Requirement
+
+**This configuration is tailored for a FRESH INSTALL of VANILLA ARCH LINUX using the archinstall script with the Hyprland profile.** In archinstall choose NetworkManager (default backend) and leave sddm as the greeter. The script will replace sddm for Noctalia-Greeter. We strongly advise against attempting this installation on derivative distributions (such as CachyOS, Manjaro, etc.) as package and configuration conflicts are highly likely.
+
+## 🚀 Arch Installation Guide
+
+### Prerequisites
+
+```bash
+sudo pacman -S git
+```
+
+### Step 1: Clone the Repository
+
+Open your terminal and clone the repository using `git`:
+
+```bash
+git clone https://gitlab.com/minimalinux/minimaDots.git
+```
+
+### Step 2: Change directory to the repo
+```bash
+cd ./minimaDots
+```
+
+### Step 3: Make the install script executable
+
+```bash
+chmod +x ./install.sh
+```
+
+### Step 4: Run the install script, YIPPE
+```bash
+sudo ./install.sh
+```
+
+### Fedora Installation 
+
+<details>
+  <summary align="center"><b>📸 Click to view Screenshot</b></summary>
   <p align="center">
-    <img src="Red.png" height="350" style="vertical-align: middle;"><img src="TokyoNight.png" height="350" style="vertical-align: middle;">
+    <img src="Fedora.png" height="350" style="vertical-align: middle;">
   </p>
 </details>
 
-## ⚠️ Important Warnings & Disclaimer
+We recommend using a fresh install of Fedora using the Fedora Everything install ISO with package selections seen in the above screenshot.
 
-### Fresh Install Requirement
+The Fedora installer will enable the following COPR repositories to provide additional packages needed for the setup:
 
-**This configuration is tailored for a FRESH INSTALL of VANILLA ARCH LINUX using the archinstall script with the Hyprland profile.** We strongly advise against attempting this installation on derivative distributions (such as CachyOS, Manjaro, etc.) as package and configuration conflicts are highly likely. This includes packages you could install yourself, through Arch's repo, and a few AUR packages. This will install the chaotic AUR, the only AUR exclusive package that is installed, is the Noctalia bar itself. 
+- [lionheartp/Hyprland](https://copr.fedorainfracloud.org/coprs/lionheartp/Hyprland/)
+- [leloubil/wl-clip-persist](https://copr.fedorainfracloud.org/coprs/leloubil/wl-clip-persist/)
+- [tofik/nwg-shell](https://copr.fedorainfracloud.org/coprs/tofik/nwg-shell/)
+
+We are also using [Satty](https://github.com/gabm/Satty) for screen annotations. 
+
+Credit goes to these developers for their excellent work.
+
+To install on Fedora, follow these steps:
+
+1. Install Git:
+   ```bash
+   sudo dnf install git -y
+   ```
+
+2. Clone the repository:
+   ```bash
+   git clone https://gitlab.com/minimalinux/minimaDots.git
+   ```
+
+3. Change into the project directory:
+   ```bash
+   cd minimaDots
+   ```
+
+4. Make the Fedora installer executable:
+   ```bash
+   chmod +x ./fedora_install.sh
+   ```
+
+5. Run the Fedora installer:
+   ```bash
+   sudo ./fedora_install.sh
+   ```
+
 
 ### Development Status
 
 This script, is now released. It is no longer in beta state. This project originally started as a vibe coded project to see what we could get away with. It quickly turned into only being an outline, as A.I is too frustrating to deal with after more than 80 lines of code. The rest, is completely scripted by tonekneeo, and myself.
 
+### Lua Update
+
+The Hyprland configuration now uses Lua-based. The old .conf-based structure is no longer used.
+
+We have also switched over to Noctalia v5.
+
 ### What this does
 
-This script turns a fresh Arch + Hyprland setup into the minimaLinux desktop by installing required packages, dropping useless ones and adding preconfigured streamlined dotfiles.
+This script turns a fresh Arch + Hyprland or Fedora setup into the minimaLinux desktop by installing required packages, dropping useless ones and adding preconfigured streamlined dotfiles.
 
 ### Nvidia Users
 
-Once in the system open ~/.config/hypr/startup.conf and uncomment the Nvidia section then reboot.
+NVIDIA Users: On line 32 of the startup.lua change local enable_nvidia_optional = false to local enable_nvidia_optional = true
+
+The script will prompt the user and update the startup.lua as needed.
 
 ### Credits
 
-The primary application bar (`noctalia-shell`) is based on the exceptional work by **Noctalia**. All credit for the bar's design and functionality goes to them:
+The primary application bar (`noctalia`) is based on the exceptional work by **Noctalia**. All credit for the bar's design and functionality goes to them:
 
-> [**noctalia-dev/noctalia-shell**](https://github.com/noctalia-dev/noctalia-shell)
+> [**noctalia-dev**](https://noctalia.dev/)
+
+### Community
+
+Join the Discord server: [HERE](https://discord.gg/rQTabZmYHh)
 
 
 ## 📦 What's Included?
@@ -58,43 +154,15 @@ These dotfiles are provided strictly as a **template**. You **must** review and 
 
 | File/Section | Customization Needed | Notes |
 | :--- | :--- | :--- |
-| **`hypr/hyprland.conf`** | Monitor setup (resolution, scaling, refresh rate). | The current default is `monitor=,preferred,auto,1`. You may use `nwg-displays` to help configure and export precise settings. |
-| **`hypr/keybinds.conf`** | Set bindings here. | Super+E is to open your file explorer. Super+D is the app launcher. |
+| **`hypr/monitors.lua`** | Monitor setup (resolution, scaling, refresh rate). | The current default is `monitor=,preferred,auto,1`. You may use `nwg-displays` to help configure and export precise settings. |
+| **`hypr/keybind.lua`** | Set bindings here. | Super+E is to open your file explorer. Super+D is the app launcher. |
 | **Theming** | Color schemes, fonts, and global aesthetic settings. | The default theme is minimal. Customize these within Noctalia's settings, go to color scheme, and then templates, you can set kitty, GTK, or whatever else you would like to match your color scheme. |
 | *NOTE ON THEMING* | adw-gtk3-dark | This will be needed to make changes to GTK. This comes preinstalled, you will have to set it in GTK Settings. |
 | **`fastfetch/config.jsonc`** | Theming/Images. | Update the configuration for your specific image or ASCII art display. |
 
 ---
 
-## 🚀 Installation Guide
 
-### Prerequisites
-
-You must be running an **Arch-based Linux distribution** and have basic development tools installed (`git` is required for cloning).
-
-### Step 1: Clone the Repository
-
-Open your terminal and clone the repository using `git`:
-
-```bash
-git clone https://github.com/Echilonvibin/minimaLinux.git
-```
-
-### Step 2: Change directory to the repo
-```bash
-cd ./minimaLinux
-```
-
-### Step 3: Make the install script executable
-
-```bash
-chmod +x ./install.sh
-```
-
-### Step 4: Run the install script, YIPPE
-```bash
-sudo ./install.sh
-```
 
 ### Additional Install Notes
 
@@ -112,4 +180,4 @@ If you need to revert the changes, navigate to the repository directory and run:
 
 This will restore any backed-up config files found in `~/.config` to their previous state.
 
-> **Note:** Installed packages are **not** automatically removed. If you wish to uninstall them, you will need to do so manually via `pacman` or `yay`.
+> **Note:** Installed packages are **not** automatically removed. If you wish to uninstall them, you will need to do so manually via your package manager.
