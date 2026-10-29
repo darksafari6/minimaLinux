@@ -33,12 +33,12 @@ sudo pacman -S git
 Open your terminal and clone the repository using `git`:
 
 ```bash
-git clone https://gitlab.com/minimalinux/minimaDots.git
+git clone https://github.com/darksafari6/minimaLinux.git
 ```
 
 ### Step 2: Change directory to the repo
 ```bash
-cd ./minimaDots
+cd ./minimaLinux
 ```
 
 ### Step 3: Make the install script executable
@@ -82,12 +82,12 @@ To install on Fedora, follow these steps:
 
 2. Clone the repository:
    ```bash
-   git clone https://gitlab.com/minimalinux/minimaDots.git
+   git clone https://github.com/darksafari6/minimaLinux.git
    ```
 
 3. Change into the project directory:
    ```bash
-   cd minimaDots
+   cd minimaLinux
    ```
 
 4. Make the Fedora installer executable:
@@ -145,6 +145,23 @@ This repository provides comprehensive configurations for a complete, customized
 | **`fastfetch`** | Configuration for displaying system information with custom images/ASCII art. |
 | **`install.sh`** | An automated script for package installation and configuration deployment. |
 | **`uninstall.sh`** | A script to revert changes and restore previous configurations (if a backup exists). |
+
+---
+
+## ✨ minimaOS Glass Desktop (Noctalia v5+)
+
+The minimaOS profile adds an iPhone-inspired glass aesthetic to the existing Noctalia v5+ session: a rounded translucent top bar, floating Control Center, a magnified dock, translucent Settings, top-right notification cards, and a custom dark/light palette. It keeps Linux-native services and permissions; unsupported hardware controls are not faked.
+
+- Main profile: [`.config/noctalia/config.toml`](.config/noctalia/config.toml)
+- Custom palette: [`.config/noctalia/palettes/minimaOS.json`](.config/noctalia/palettes/minimaOS.json)
+- Architecture, backup, and recovery notes: [`docs/minimaOS-Glass-Experience.md`](docs/minimaOS-Glass-Experience.md)
+- Read-only system diagnostics: run `bash scripts/minimaos-healthcheck.sh` as your normal desktop user.
+
+**Shortcuts:** `SUPER + I` opens Control Center; `SUPER + SHIFT + N` opens notification history; `SUPER + SHIFT + A` opens audio; `SUPER + SHIFT + W` opens network; `SUPER + SHIFT + B` opens Bluetooth. `SUPER + T` continues to open Settings.
+
+The profile targets Noctalia v5+; Noctalia v4 uses a different configuration model. After applying a profile, run `noctalia config validate` and verify the live Wayland session before removing backups. See the [Noctalia v5+ configuration docs](https://docs.noctalia.dev/noctalia/configuration/) for configuration precedence and validation.
+
+Notification sound uses Noctalia's built-in Freedesktop sound theme at a restrained volume. An arbitrary custom iPhone-style sound file is not wired up because a supported custom-file hook was not verified; this avoids introducing a conflicting notification daemon.
 
 ---
 

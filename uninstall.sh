@@ -1,113 +1,101 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# --- Configuration (Must match install.sh) ---
-REPO_NAME="echilon-dotfiles"
-INSTALL_DIR="$HOME/Source/$REPO_NAME"
+# minimaLinux configuration rollback.
+# This script never deletes an active user configuration. If a timestamped
+# backup exists, it moves the active file aside and restores the latest backup.
+# If no backup exists, the active configuration is preserved.
+
+set -u
+
 CONFIG_DIR="$HOME/.config"
-LOCAL_SHARE_DIR="$HOME/.local/share"
-
-# List of configuration files/directories that were installed into ~/.config
-CONFIG_TARGETS=(
+STAMP="$(date +%Y%m%d-%H%M%S)"
+TARGETS=(
     "hypr"
-    "rofi"
+    "noctalia"
     "kitty"
     "fish"
-    "starship.toml"
     "fastfetch"
+    "starship.toml"
+    "pipewire"
 )
 
-# List of theming files/folders that were installed into ~/.local/share/themes
-THEME_TARGETS=(
-    "themes"
-)
-
-# List of icon files/folders that were installed into ~/.local/share/icons
-ICON_TARGETS=(
-    "icons"
-)
-
-# --- Functions ---
-
-# Function to prompt the user for confirmation
 confirm_action() {
-    read -r -p "Are you sure you want to proceed with uninstallation? (y/N): " response
+    local response
+    read -r -p "Restore minimaLinux configuration backups now? (y/N): " response
     case "$response" in
-        [yY][eE][sS]|[yY]) 
-            return 0
-            ;;
-        *)
-            echo "Uninstallation cancelled by user. Exiting."
-            exit 1
-            ;;
+        y|Y|yes|YES) return 0 ;;
+        *) echo "Cancelled; no files were changed."; exit 0 ;;
     esac
 }
 
-# Function to restore backups for a given directory set
-restore_backups() {
-    local targets=("${!1}") # Get array reference
-    local dest_dir="$2"
-    local config_type="$3"
-
-    echo -e "\n--- Restoring $config_type Backups in $dest_dir ---"
-    
-    for target in "${targets[@]}"; do
-        FULL_PATH="$dest_dir/$target"
-        
-        # 1. Check for and remove the currently deployed file/directory
-        if [ -d "$FULL_PATH" ] || [ -f "$FULL_PATH" ] || [ -L "$FULL_PATH" ]; then
-            echo "-> Deleting currently deployed: $FULL_PATH"
-            rm -rf "$FULL_PATH"
-        fi
-
-        # 2. Check for the backup file
-        BACKUP_FILE=$(find "$dest_dir" -maxdepth 1 -type f -name "$target.bak.*" -o -name "$target.bak.*" -type d | sort -r | head -n 1)
-
-        if [ -n "$BACKUP_FILE" ]; then
-            # Found a backup, restore it
-            echo "-> Restoring backup: $(basename "$BACKUP_FILE") to $target"
-            mv "$BACKUP_FILE" "$FULL_PATH"
-        else
-            echo "-> No backup found for $target. Clean removal completed."
-        fi
-    done
+path_exists() {
+    [ -e "$1" ] || [ -L "$1" ]
 }
 
-# --- Main Execution ---
+latest_backup_for() {
+    local target="$1"
+    local candidate
+    local latest=""
+
+    for candidate in "$CONFIG_DIR/$target".bak.*; do
+        path_exists "$candidate" || continue
+        if [ -z "$latest" ] || [[ "$candidate" > "$latest" ]]; then
+            latest="$candidate"
+        fi
+    done
+
+    printf '%s' "$latest"
+}
+
+restore_target() {
+    local target="$1"
+    local active="$CONFIG_DIR/$target"
+    local backup
+    local preserved
+
+    backup="$(latest_backup_for "$target")"
+
+    if [ -z "$backup" ]; then
+        echo "[KEEP] No timestamped backup for $target; preserving the current path."
+        return 0
+    fi
+
+    if path_exists "$active"; then
+        preserved="$CONFIG_DIR/$target.minimaLinux-preserved.$STAMP"
+        if ! mv -- "$active" "$preserved"; then
+            echo "[FAIL] Could not preserve current $active; not restoring $backup." >&2
+            return 1
+        fi
+        echo "[KEEP] Current configuration moved to $preserved"
+    fi
+
+    if mv -- "$backup" "$active"; then
+        echo "[RESTORED] $target from $(basename "$backup")"
+    else
+        echo "[FAIL] Could not restore $backup." >&2
+        return 1
+    fi
+}
 
 echo "======================================================"
-echo " Starting Hyprland Dotfiles Uninstallation (Reverse Operation)"
+echo " minimaLinux configuration rollback"
 echo "======================================================"
-
+echo "No packages or system services will be removed."
+echo "Active files are preserved before a backup is restored."
 confirm_action
 
-# 1. Restore .config backups
-restore_backups CONFIG_TARGETS[@] "$CONFIG_DIR" "Configuration"
+failed=0
+for target in "${TARGETS[@]}"; do
+    restore_target "$target" || failed=1
+done
 
-# 2. Restore .local/share/themes backups (using the array name as reference)
-restore_backups THEME_TARGETS[@] "$LOCAL_SHARE_DIR/themes" "Theme"
-
-# 3. Restore .local/share/icons backups (using the array name as reference)
-restore_backups ICON_TARGETS[@] "$LOCAL_SHARE_DIR/icons" "Icon"
-
-# 4. Remove the cloned repository
-echo -e "\n--- Removing Cloned Repository ---"
-if [ -d "$INSTALL_DIR" ]; then
-    echo "-> Deleting repository folder: $INSTALL_DIR"
-    rm -rf "$INSTALL_DIR"
+echo
+if [ "$failed" -eq 0 ]; then
+    echo "Configuration rollback finished. Review any [KEEP] messages."
 else
-    echo "-> Repository folder not found at $INSTALL_DIR. Skipping removal."
+    echo "Rollback had one or more errors. Review the messages above." >&2
 fi
-
+echo "The cloned repository was not removed; delete it manually after confirming recovery."
+echo "Installed packages, display-manager settings, and system-level changes are not automatically reverted."
 echo "======================================================"
-echo "Uninstallation Complete!"
-echo "Your original configuration files have been restored from backups."
-echo "======================================================"
-echo "⚠️ NEXT STEPS: MANUAL PACKAGE REMOVAL ⚠️"
-echo "The installed software packages (Hyprland, Kitty, Rofi, etc.) were NOT automatically removed."
-echo "If you wish to remove them, please use the following commands:"
-echo ""
-echo "--- Official/Common Packages (Requires sudo) ---"
-echo ""
-echo "--- AUR Packages (Requires yay) ---"
-echo "yay -Rns noctalia-shell-git missioncenter yt-dlp warehouse linux-wallpaperengine-git upscaler video-downloader"
-echo "======================================================"
+exit "$failed"
