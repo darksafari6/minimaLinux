@@ -679,16 +679,37 @@ setup_chaotic_aur() {
 
 # --- Main Installation Functions ---
 
-# Remove conflicting packages
+# Keep existing applications unless the user explicitly opts in to removal.
 remove_conflicting_packages() {
-    echo "Removing conflicting packages..."
-    pacman -Rns --noconfirm dolphin polkit-kde-agent vim
-    
-    if [ $? -eq 0 ]; then
-        echo "Conflicting packages removed successfully."
-    else
-        echo "Warning: Some packages could not be removed (they may not be installed)."
+    local candidates=()
+    local package
+
+    for package in dolphin polkit-kde-agent vim; do
+        if pacman -Q "$package" >/dev/null 2>&1; then
+            candidates+=("$package")
+        fi
+    done
+
+    if [ "${#candidates[@]}" -eq 0 ]; then
+        echo "No optional conflicting packages are installed; nothing to remove."
+        return 0
     fi
+
+    echo "These packages may overlap with the selected defaults: ${candidates[*]}"
+    echo "They will be preserved unless you explicitly approve removal."
+    read -r -p "Remove these packages and their unused dependencies? (y/N): " remove_choice
+    case "$remove_choice" in
+        y|Y|yes|YES)
+            if pacman -Rns --noconfirm -- "${candidates[@]}"; then
+                echo "Requested package removal completed."
+            else
+                echo "Warning: package removal failed; continuing without removing them."
+            fi
+            ;;
+        *)
+            echo "Keeping all existing packages."
+            ;;
+    esac
 }
 
 install_gaming_packages() {
