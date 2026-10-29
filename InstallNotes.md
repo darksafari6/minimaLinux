@@ -173,3 +173,21 @@ Notes:
 ## 🔁 Final Step
 
 The reboot question loops intentionally. Reboot is strongly recommended so group, module, and config changes fully apply before normal use.
+
+
+## minimaOS Glass Profile
+
+The repository now ships an optional Noctalia v5+ glass-first profile in `.config/noctalia/`. The current installer already deploys repository `.config` entries and backs up an existing `~/.config/noctalia` before copying. Do not apply this TOML profile to Noctalia v4.
+
+Before a live-session test:
+
+~~~bash
+noctalia config validate
+bash scripts/minimaos-healthcheck.sh
+~~~
+
+Shortcuts: `SUPER + I` opens Control Center; `SUPER + SHIFT + N` opens notification history; `SUPER + SHIFT + A` audio controls; `SUPER + SHIFT + W` network; `SUPER + SHIFT + B` Bluetooth. `SUPER + T` continues to open Settings.
+
+The profile uses Noctalia's own notification daemon and Freedesktop sound theme. It does not add a second notification daemon or claim to use a custom twinkle file. A custom sound should only be added through a version-supported API and tested with Do Not Disturb and notification replacement behavior.
+
+If Noctalia validation fails, restore the timestamped backup of `~/.config/noctalia` before restarting the shell. Keep the backup until the new profile has survived logout/login and all required hardware controls have been checked.
